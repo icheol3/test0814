@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>청소당번 랜덤 추첨기</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gradient-to-br from-sky-900 via-indigo-900 to-slate-900 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl p-6 w-full max-w-3xl text-white">
+    <h1 class="text-2xl font-bold mb-2 text-center">청소당번 랜덤 추첨기</h1>
+    <p class="text-center text-sm text-gray-300 mb-6">1번부터 30번 사이에서 5명을 중복 없이 추첨합니다.</p>
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <input id="min" type="number" class="form-control" value="1" min="1" placeholder="최소 번호" />
+      <input id="max" type="number" class="form-control" value="30" min="1" placeholder="최대 번호" />
+      <input id="count" type="number" class="form-control" value="5" min="1" placeholder="인원 수" />
+    </div>
+    <div class="flex gap-3 justify-center mb-6">
+      <button id="drawBtn" class="btn btn-primary">🎲 추첨</button>
+      <button id="reshuffleBtn" class="btn btn-secondary">🔁 다시 섞기</button>
+      <button id="resetBtn" class="btn btn-danger">🗑️ 초기화</button>
+    </div>
+    <div id="result" class="flex flex-wrap gap-3 justify-center mb-6"></div>
+    <div class="text-center">
+      <button id="copyBtn" class="btn btn-outline-light">📋 결과 복사</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const minEl = $('#min');
+    const maxEl = $('#max');
+    const countEl = $('#count');
+    const resultEl = $('#result');
+    const drawBtn = $('#drawBtn');
+    const reshuffleBtn = $('#reshuffleBtn');
+    const resetBtn = $('#resetBtn');
+    const copyBtn = $('#copyBtn');
+
+    let lastDraw = [];
+
+    function validate(min, max, count) {
+      if (isNaN(min) || isNaN(max) || isNaN(count)) return '모든 값을 입력해주세요.';
+      if (min > max) return '최소 번호가 최대 번호보다 클 수 없습니다.';
+      if (count < 1) return '1명 이상 뽑아야 합니다.';
+      if (count > (max - min + 1)) return '범위 내에서 해당 인원수를 뽑을 수 없습니다.';
+      return null;
+    }
+
+    function uniqueRandoms(min, max, count) {
+      const picked = new Set();
+      while (picked.size < count) {
+        picked.add(Math.floor(Math.random() * (max - min + 1)) + min);
+      }
+      return Array.from(picked).sort((a,b)=>a-b);
+    }
+
+    function renderResult(nums) {
+      resultEl.innerHTML = '';
+      nums.forEach(n => {
+        const pill = document.createElement('div');
+        pill.className = 'bg-gradient-to-br from-cyan-400 to-blue-500 text-black font-bold rounded-full px-4 py-2 shadow-lg';
+        pill.textContent = n;
+        resultEl.appendChild(pill);
+      });
+    }
+
+    function draw(newDraw=true) {
+      const min = parseInt(minEl.value);
+      const max = parseInt(maxEl.value);
+      const count = parseInt(countEl.value);
+      const err = validate(min, max, count);
+      if (err) {
+        Swal.fire({ icon: 'error', title: '오류', text: err });
+        return;
+      }
+      let nums = [];
+      if (!newDraw && lastDraw.length) {
+        nums = [...lastDraw].sort(() => Math.random() - 0.5);
+      } else {
+        nums = uniqueRandoms(min, max, count);
+        lastDraw = nums;
+      }
+      renderResult(nums);
+      Swal.fire({ icon: 'success', title: '추첨 완료!', text: `${nums.join(', ')} 번호가 당첨되었습니다.` });
+    }
+
+    drawBtn.addEventListener('click', () => draw(true));
+    reshuffleBtn.addEventListener('click', () => draw(false));
+    resetBtn.addEventListener('click', () => {
+      minEl.value = 1; maxEl.value = 30; countEl.value = 5; lastDraw = [];
+      resultEl.innerHTML = '';
+      Swal.fire({ icon: 'info', title: '초기화 완료', text: '설정이 초기화되었습니다.' });
+    });
+    copyBtn.addEventListener('click', async () => {
+      if (!lastDraw.length) {
+        Swal.fire({ icon: 'warning', title: '복사 실패', text: '먼저 추첨을 해주세요.' });
+        return;
+      }
+      await navigator.clipboard.writeText(lastDraw.join(', '));
+      Swal.fire({ icon: 'success', title: '복사 완료', text: `${lastDraw.join(', ')} 가 클립보드에 복사되었습니다.` });
+    });
+  </script>
+</body>
+</html>
